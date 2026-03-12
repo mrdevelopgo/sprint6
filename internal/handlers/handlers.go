@@ -3,6 +3,7 @@ package handlers
 import (
 	"html/template"
 	"io"
+	"log"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -31,6 +32,9 @@ func IndexHandler(w http.ResponseWriter, r *http.Request) {
 
 // Обрабатываем загруженный файл
 func UploadHandler(w http.ResponseWriter, r *http.Request) {
+	// Добавим логирование вызова
+	log.Println("UploadHandler called")
+
 	// Проверяем, что метод запроса - POST
 	if r.Method != http.MethodPost {
 		http.Error(w, "Метод не поддерживается", http.StatusMethodNotAllowed)
@@ -44,13 +48,25 @@ func UploadHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Логируем все поля с файлами, которые пришли в форме
+	if r.MultipartForm != nil && r.MultipartForm.File != nil {
+		for key := range r.MultipartForm.File {
+			log.Printf("Found file field with name: %q", key)
+		}
+	} else {
+		log.Println("No file fields found in form")
+	}
+
 	// Получаем файл из формы
 	file, header, err := r.FormFile("file")
 	if err != nil {
+		log.Printf("FormFile error for key 'file': %v", err)
 		http.Error(w, "Файл не найден", http.StatusBadRequest)
 		return
 	}
 	defer file.Close()
+
+	log.Printf("Successfully got file: %s", header.Filename)
 
 	// Читаем содержимое файла
 	content, err := io.ReadAll(file)
