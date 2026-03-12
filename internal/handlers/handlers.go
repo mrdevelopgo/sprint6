@@ -3,6 +3,7 @@ package handlers
 import (
 	"html/template"
 	"io"
+	"log"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -31,66 +32,74 @@ func IndexHandler(w http.ResponseWriter, r *http.Request) {
 
 // Обрабатываем загруженный файл
 func UploadHandler(w http.ResponseWriter, r *http.Request) {
-	// Проверяем, что метод запроса - POST
+	log.Println("UploadHandler called")
+
 	if r.Method != http.MethodPost {
 		http.Error(w, "Метод не поддерживается", http.StatusMethodNotAllowed)
 		return
 	}
 
-	// Парсим multipart форму до 10 MB
 	err := r.ParseMultipartForm(10 << 20)
 	if err != nil {
+		log.Printf("ParseMultipartForm error: %v", err)
 		http.Error(w, "Ошибка обработки формы", http.StatusInternalServerError)
 		return
 	}
 
-	// Получаем файл из формы
-	file, header, err := r.FormFile("file")
+	if r.MultipartForm != nil && r.MultipartForm.File != nil {
+		for key := range r.MultipartForm.File {
+			log.Printf("Found file field with name: %q", key)
+		}
+	} else {
+		log.Println("No file fields found in form")
+	}
+
+	file, header, err := r.FormFile("myFile")
 	if err != nil {
+		log.Printf("FormFile error for key 'myFile': %v", err)
 		http.Error(w, "Файл не найден", http.StatusBadRequest)
 		return
 	}
 	defer file.Close()
 
-	// Читаем содержимое файла
+	log.Printf("Successfully got file: %s", header.Filename)
+
 	content, err := io.ReadAll(file)
 	if err != nil {
+		log.Printf("ReadAll error: %v", err)
 		http.Error(w, "Ошибка чтения файла", http.StatusInternalServerError)
 		return
 	}
 
-	// Вызываем функцию автоопределения и конвертации
 	converted, err := service.ConvertByType(string(content))
 	if err != nil {
+		log.Printf("ConvertByType error: %v", err)
 		http.Error(w, "Ошибка конвертации", http.StatusInternalServerError)
 		return
 	}
 
-	// Генерируем уникальное имя для выходного файла: текущее время + расширение оригинального файла
+	// Сохраняем результат в новый файл (как требует задание)
 	timestamp := time.Now().UTC().Format("20060102_150405")
 	ext := filepath.Ext(header.Filename)
 	outputFilename := timestamp + "_converted" + ext
 
-	// Создаем новый файл для результата
 	outputFile, err := os.Create(outputFilename)
 	if err != nil {
+		log.Printf("Create error: %v", err)
 		http.Error(w, "Ошибка создания файла", http.StatusInternalServerError)
 		return
 	}
 	defer outputFile.Close()
 
-	// Записываем результат в файл
 	_, err = outputFile.WriteString(converted)
 	if err != nil {
+		log.Printf("WriteString error: %v", err)
 		http.Error(w, "Ошибка записи в файл", http.StatusInternalServerError)
 		return
 	}
 
-	// Отправляем результат пользователю
+	// Отправляем только результат конвертации (без лишнего текста)
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("Конвертация выполнена успешно!\n\n"))
-	w.Write([]byte("Результат:\n"))
 	w.Write([]byte(converted))
-	w.Write([]byte("\n\nФайл сохранен как: " + outputFilename))
 }
