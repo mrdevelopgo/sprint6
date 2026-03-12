@@ -15,11 +15,12 @@ func ConvertByType(input string) (string, error) {
 
 	// Пытаемся интерпретировать как Морзе
 	asText := morse.ToText(trimmed)
-	if asText != trimmed {
-		// Если ToText вернул другой результат, значит входные данные были Морзе,а результат — текст. Возвращаем текст.
+
+	// Если результат не пустой и отличается от входа, значит это был Морзе
+	if asText != "" && asText != trimmed {
 		return asText, nil
 	}
 
-	// Конвертируем как текст в Морзе.
+	// Конвертируем в Морзе
 	return morse.ToMorse(trimmed), nil
 }
