@@ -81,6 +81,7 @@ func UploadHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Ошибка конвертации", http.StatusInternalServerError)
 		return
 	}
+	log.Printf("ConvertByType result (%d bytes): %q", len(converted), converted)
 
 	// Генерируем уникальное имя для выходного файла: текущее время + расширение оригинального файла
 	timestamp := time.Now().UTC().Format("20060102_150405")
