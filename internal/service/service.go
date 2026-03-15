@@ -1,38 +1,31 @@
 package service
 
 import (
+	"log"
 	"strings"
 
 	"github.com/Yandex-Practicum/go1fl-sprint6-final/pkg/morse"
 )
 
-// Определяем 'nj текст или морзе, конвертируем в противоположное
+// ConvertByType определяет тип входных данных (текст или азбука Морзе)
+// и конвертирует их в противоположный формат.
 func ConvertByType(input string) (string, error) {
-	// Убираем лишние пробелы
 	trimmed := strings.TrimSpace(input)
-
-	// Если строка пустая возвращаем
 	if trimmed == "" {
 		return "", nil
 	}
 
-	// Смотрим каждый символ строки
-	isMorse := true
+	// Пытаемся интерпретировать как Морзе
+	asText := morse.ToText(trimmed)
 
-	for _, char := range trimmed {
-		// Ищем точка, тире и пробел
-		if char != '.' && char != '-' && char != ' ' {
-			isMorse = false
-			break
-		}
+	// Если результат не пустой и отличается от входа, значит это был Морзе
+	if asText != "" && asText != trimmed {
+		log.Printf("Morse detected: %q -> %q", trimmed, asText)
+		return asText, nil
 	}
 
-	// Выполняем конвертацию
-	if isMorse {
-		// Если морзе - переводим в текст
-		return morse.ToText(trimmed), nil
-	} else {
-		// Если текст - переводим в морзе
-		return morse.ToMorse(trimmed), nil
-	}
+	// Иначе это текст — конвертируем в Морзе
+	morseCode := morse.ToMorse(trimmed)
+	log.Printf("Text detected: %q -> %q", trimmed, morseCode)
+	return morseCode, nil
 }
